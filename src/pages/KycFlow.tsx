@@ -119,7 +119,7 @@ export default function KycFlow() {
                     <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 flex justify-between items-center">
                       <div>
                         <p className="text-xs text-brand-400 font-bold uppercase tracking-widest mb-1">Match Complete</p>
-                        <p className="text-white text-sm font-medium">NEOFI INNOVATIONS PVT LTD</p>
+                        <p className="text-white text-sm font-medium">MSMERAISE INNOVATIONS PVT LTD</p>
                       </div>
                       <Button size="sm" onClick={() => setStep(2)}>Continue <ArrowRight className="w-4 h-4 ml-1" /></Button>
                     </div>

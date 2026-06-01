@@ -15,9 +15,9 @@ export default function LandingPage() {
       <header className="relative z-10 w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <div className="flex items-center gap-3 text-xl font-display font-bold text-white tracking-tight">
           <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center shadow-[0_0_15px_rgba(20,241,217,0.4)]">
-            <span className="text-black text-sm font-bold leading-none">N</span>
+            <span className="text-black text-sm font-bold leading-none">M</span>
           </div>
-          Neo<span className="text-brand-400">Fi</span> AI
+          MSME<span className="text-brand-400">RAISE</span>
         </div>
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-dark-200">
           <a href="#features" className="hover:text-white transition-colors">Platform</a>
@@ -45,7 +45,7 @@ export default function LandingPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
             </span>
-            NeoFi AI Infrastructure is now live
+            MSMERAISE Infrastructure is now live
           </motion.div>
           
           <motion.h1 

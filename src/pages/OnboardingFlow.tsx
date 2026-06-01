@@ -78,7 +78,7 @@ export default function OnboardingFlow() {
     <div className="min-h-screen flex flex-col p-6 items-center pt-24">
       <div className="w-full max-w-2xl">
         <div className="mb-10 text-center">
-          <h1 className="text-3xl font-display font-bold text-white">Let's personalize your NeoFi</h1>
+          <h1 className="text-3xl font-display font-bold text-white">Let's personalize your MSMERAISE</h1>
           <p className="text-dark-300 mt-2">Step {step} of 3</p>
           <div className="mt-4 flex gap-2 w-full max-w-xs mx-auto">
             {[1, 2, 3].map(i => (

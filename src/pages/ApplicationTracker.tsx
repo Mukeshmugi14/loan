@@ -71,7 +71,7 @@ export default function ApplicationTracker() {
                           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 bg-dark-800/50 rounded-xl p-4 border border-white/5">
                             <div className="flex items-center gap-3 mb-3">
                               <Bot className="w-5 h-5 text-brand-400" />
-                              <span className="text-sm font-medium text-white">NeoFi AI verifying submitted documents...</span>
+                              <span className="text-sm font-medium text-white">MSMERAISE AI verifying submitted documents...</span>
                             </div>
                             <div className="w-full bg-dark-950 h-1.5 rounded-full overflow-hidden">
                               <div className="h-full bg-brand-500 w-2/3 animate-pulse" />

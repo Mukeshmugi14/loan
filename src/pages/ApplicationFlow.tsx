@@ -201,7 +201,7 @@ export default function ApplicationFlow() {
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2 col-span-2">
                       <label className="text-xs font-bold uppercase tracking-wider text-brand-400">Registered Entity Name</label>
-                      <Input defaultValue="NEOFI INNOVATIONS PVT LTD" className="h-12 bg-brand-500/5 border-brand-500/30 text-brand-400 font-medium read-only focus:border-brand-500/30" readOnly />
+                      <Input defaultValue="MSMERAISE INNOVATIONS PVT LTD" className="h-12 bg-brand-500/5 border-brand-500/30 text-brand-400 font-medium read-only focus:border-brand-500/30" readOnly />
                     </div>
                     <div className="space-y-2 col-span-2 md:col-span-1">
                       <label className="text-xs font-bold uppercase tracking-wider text-dark-400">Industry / Sector</label>
@@ -323,7 +323,7 @@ export default function ApplicationFlow() {
                       <input type="checkbox" className="mt-1 w-5 h-5 rounded border-dark-600 bg-dark-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-dark-800 cursor-pointer" defaultChecked />
                       <div>
                         <p className="text-sm text-white font-medium mb-1">CIBIL & Bureau Inquiry Authorization</p>
-                        <p className="text-xs text-dark-400 leading-relaxed">I/We hereby authorize NeoFi Platform and its partner banks to pull our credit bureau reports from CIBIL, Equifax, Experian for underwriting this facility.</p>
+                        <p className="text-xs text-dark-400 leading-relaxed">I/We hereby authorize MSMERAISE Platform and its partner banks to pull our credit bureau reports from CIBIL, Equifax, Experian for underwriting this facility.</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-4">
@@ -369,7 +369,7 @@ export default function ApplicationFlow() {
              <div className="flex gap-3 mb-6">
                <Bot className="w-5 h-5 text-brand-400 flex-shrink-0 mt-0.5" />
                <div>
-                 <p className="font-bold text-white text-sm mb-1">NeoFi Assistant</p>
+                 <p className="font-bold text-white text-sm mb-1">MSMERAISE Assistant</p>
                  <p className="text-xs text-brand-200">
                    Your profile maturity unlocks a 24-hr fast-track underwriting SLA. 
                  </p>

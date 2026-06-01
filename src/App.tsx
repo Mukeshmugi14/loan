@@ -3,7 +3,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
+import GoogleConsent from './pages/GoogleConsent';
+import AuthCallback from './pages/AuthCallback';
 import OnboardingFlow from './pages/OnboardingFlow';
+import DocumentCollection from './pages/DocumentCollection';
+import ProfileCompletion from './pages/ProfileCompletion';
 import DashboardLayout from './layouts/DashboardLayout';
 import MainDashboard from './pages/MainDashboard';
 import RecommendationsPage from './pages/RecommendationsPage';
@@ -20,7 +24,7 @@ import LenderDashboard from './pages/LenderDashboard';
 const ProtectedRoute = ({ children, requireOnboarded = false }: { children: React.ReactNode, requireOnboarded?: boolean }) => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/auth" />;
-  if (requireOnboarded && !user.onboarded) return <Navigate to="/onboarding" />;
+  if (requireOnboarded && !user.onboarded) return <Navigate to="/document-collection" />;
   return <>{children}</>;
 };
 
@@ -29,9 +33,16 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/consent" element={<GoogleConsent />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/onboarding" element={
         <ProtectedRoute>
-          <OnboardingFlow />
+          <DocumentCollection />
+        </ProtectedRoute>
+      } />
+      <Route path="/document-collection" element={
+        <ProtectedRoute>
+          <DocumentCollection />
         </ProtectedRoute>
       } />
       
@@ -45,6 +56,7 @@ const AppRoutes = () => {
         <Route path="/applications" element={<ApplicationsPage />} />
         <Route path="/applications/:appId/track" element={<ApplicationTracker />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/completion" element={<ProfileCompletion />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
 
