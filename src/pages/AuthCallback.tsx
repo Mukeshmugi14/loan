@@ -34,19 +34,26 @@ export default function AuthCallback() {
   }, []);
 
   useEffect(() => {
-    // Once status is 'creating' and the user object is set in our context, we navigate
+    // Once status is 'creating' and the user object is set in our context, we set status to 'done'
     if (status === 'creating' && user) {
       setStatus('done');
-      const timer2 = setTimeout(() => {
-        if (!user.onboarded) {
-          navigate('/document-collection');
-        } else {
-          navigate('/dashboard');
-        }
-      }, 1000);
-      return () => clearTimeout(timer2);
     }
   }, [status, user]);
+
+  useEffect(() => {
+    if (status === 'done') {
+      const timer = setTimeout(() => {
+        if (user) {
+          if (!user.onboarded) {
+            navigate('/document-collection');
+          } else {
+            navigate('/dashboard');
+          }
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [status, user, navigate]);
 
   return (
     <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center p-6 text-white">
