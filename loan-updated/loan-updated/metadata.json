@@ -1,0 +1,6 @@
+{
+  "name": "NeoFi AI Financial Intelligence",
+  "description": "AI-powered Financial Intelligence & Opportunity Matching Platform for discovering eligible loans, matching schemes, and generating AI trust scores.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
