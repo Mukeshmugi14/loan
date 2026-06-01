@@ -17,7 +17,7 @@ export default function AdminDashboard() {
       <header className="flex justify-between items-end mb-8 w-full max-w-7xl mx-auto">
         <div>
           <h1 className="text-3xl font-display font-bold text-white flex items-center gap-3">
-            <Server className="w-8 h-8 text-brand-400" /> NeoFi Core Admin
+            <Server className="w-8 h-8 text-brand-400" /> MSMERAISE Core Admin
           </h1>
           <p className="text-dark-400 mt-1">System infrastructure and AI engine monitoring.</p>
         </div>

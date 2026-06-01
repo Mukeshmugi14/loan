@@ -2,7 +2,7 @@ import { Card, Button } from '../components/ui';
 import { Target, Users, Search, CheckCircle, XCircle } from 'lucide-react';
 
 const APPLICATIONS = [
-  { id: 'APP-8921', name: 'NeoFi Innovations', requested: '₹1.5Cr', aiScore: 842, status: 'Review' },
+  { id: 'APP-8921', name: 'MSMERAISE Innovations', requested: '₹1.5Cr', aiScore: 842, status: 'Review' },
   { id: 'APP-8922', name: 'Ravi Verma (Freelance)', requested: '₹5L', aiScore: 910, status: 'Auto-Approved' },
   { id: 'APP-8923', name: 'Srinija Textiles', requested: '₹40L', aiScore: 610, status: 'High Risk' },
 ];

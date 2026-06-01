@@ -21,11 +21,14 @@ interface UploadedFile {
   url: string;
 }
 
-function FileUploadZone({ label, docKey, onUpload, uploaded }: {
-  label: string; docKey: string;
+interface FileUploadZoneProps {
+  label: string;
+  docKey: string;
   onUpload: (key: string, file: UploadedFile) => void;
   uploaded?: boolean;
-}) {
+}
+
+const FileUploadZone: React.FC<FileUploadZoneProps> = ({ label, docKey, onUpload, uploaded }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -247,8 +250,8 @@ export default function DocumentCollection() {
                 { key: 'pan', label: 'PAN Card *' },
                 { key: 'addressProof', label: 'Address Proof' },
                 { key: 'bankDetails', label: 'Bank Account Details' },
-              ].map(({ key, label }) => (
-                <FileUploadZone key={key} docKey={key} label={label} onUpload={handleDocUpload} uploaded={!!uploadedDocs[key]} />
+              ].map((item) => (
+                <FileUploadZone key={item.key} docKey={item.key} label={item.label} onUpload={handleDocUpload} uploaded={!!uploadedDocs[item.key]} />
               ))}
               <Button onClick={handleKycContinue} className="w-full mt-2">Continue <ChevronRight className="w-4 h-4 ml-1" /></Button>
             </motion.div>
@@ -267,8 +270,8 @@ export default function DocumentCollection() {
                 { key: 'msmeRegistration', label: 'MSME Registration' },
                 { key: 'businessLicense', label: 'Business License' },
                 { key: 'incorporationCertificate', label: 'Incorporation Certificate' },
-              ].map(({ key, label }) => (
-                <FileUploadZone key={key} docKey={key} label={label} onUpload={handleDocUpload} uploaded={!!uploadedDocs[key]} />
+              ].map((item) => (
+                <FileUploadZone key={item.key} docKey={item.key} label={item.label} onUpload={handleDocUpload} uploaded={!!uploadedDocs[item.key]} />
               ))}
               <Button onClick={handleBizDocsContinue} className="w-full mt-2">Continue <ChevronRight className="w-4 h-4 ml-1" /></Button>
             </motion.div>

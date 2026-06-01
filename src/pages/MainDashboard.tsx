@@ -3,6 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { ShieldCheck, TrendingUp, Sparkles, AlertCircle, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { useAuth } from '../context/AuthContext';
 
 const CASHFLOW_DATA = [
   { month: 'Jan', inward: 4000, outward: 2400 },
@@ -15,8 +16,37 @@ const CASHFLOW_DATA = [
 ];
 
 export default function MainDashboard() {
+  const { calculateCompletion } = useAuth();
+  const completion = calculateCompletion();
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
+      {/* Dynamic Profile Completion Reminder Banner */}
+      {completion.overall < 100 && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }} 
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-brand-500/10 via-cyan-500/5 to-transparent border border-brand-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/20 flex items-center justify-center text-brand-400 shrink-0">
+              <Sparkles className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Boost Your Match Eligibility Rating</p>
+              <p className="text-xs text-dark-400 mt-1">
+                Your MSMERAISE profile is currently <span className="text-brand-400 font-bold">{completion.overall}% complete</span>. Uploading missing business verification documents will unlock direct loan channels.
+              </p>
+            </div>
+          </div>
+          <Link to="/profile/completion" className="shrink-0 w-full sm:w-auto">
+            <Button size="sm" className="bg-brand-500 hover:bg-brand-400 text-black font-bold whitespace-nowrap w-full sm:w-auto h-9 px-4 rounded-lg">
+              Complete Setup <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </Link>
+        </motion.div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="md:col-span-4">

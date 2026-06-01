@@ -95,7 +95,7 @@ export default function RecommendationDetailsPage() {
             </div>
             <div className="flex items-center gap-2 mb-4">
               <Zap className="w-5 h-5 text-brand-400" />
-              <h3 className="text-sm font-bold tracking-widest uppercase text-brand-400">NeoFi AI Recommendation Intelligence</h3>
+              <h3 className="text-sm font-bold tracking-widest uppercase text-brand-400">MSMERAISE Recommendation Intelligence</h3>
             </div>
             <p className="text-white font-medium text-lg mb-4 leading-relaxed">
               Why this is your best match: Your strong GST consistency over the past 12 months triggers a 1.5% rate discount with {loan.lender}.
