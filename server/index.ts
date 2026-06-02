@@ -22,8 +22,20 @@ connectDB();
 
 // Security Middleware
 app.use(helmet());
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  ...(env.CORS_ORIGIN ? [env.CORS_ORIGIN] : []),
+];
+
 app.use(cors({
-  origin: env.CORS_ORIGIN || (process.env.VITE_API_BASE_URL ? process.env.VITE_API_BASE_URL.replace('/api', '') : 'http://localhost:3000'),
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
   credentials: true,
 }));
 

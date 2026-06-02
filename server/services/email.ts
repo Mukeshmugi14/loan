@@ -4,14 +4,32 @@ import { env } from '../config/env';
 export const transporter = nodemailer.createTransport({
   host: env.EMAIL_HOST,
   port: env.EMAIL_PORT,
-  secure: env.EMAIL_PORT === 465, // true for 465, false for other ports
+  secure: env.EMAIL_PORT === 465,
   auth: {
     user: env.EMAIL_USER,
     pass: env.EMAIL_PASSWORD,
   },
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
-export const sendOTP = async (to: string, otp: string) => {
+// Verify SMTP connection on startup
+transporter.verify((error) => {
+  if (error) {
+    console.error('❌ [SMTP] Connection failed:', error.message);
+    console.error('   Check EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD in your .env');
+  } else {
+    console.log('✅ [SMTP] Server is ready to send emails');
+  }
+});
+
+export const sendOTP = async (to: string, otp: string): Promise<boolean> => {
+  if (!env.EMAIL_HOST || !env.EMAIL_USER || !env.EMAIL_PASSWORD) {
+    console.error('❌ [SMTP] Missing EMAIL_HOST / EMAIL_USER / EMAIL_PASSWORD in .env');
+    return false;
+  }
+
   const mailOptions = {
     from: env.EMAIL_FROM || `"MSMERAISE Auth" <${env.EMAIL_USER}>`,
     to,
@@ -32,10 +50,18 @@ export const sendOTP = async (to: string, otp: string) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log(`Email sent: ${info.messageId}`);
+    console.log(`✅ [SMTP] Email sent to ${to}: ${info.messageId}`);
     return true;
-  } catch (error) {
-    console.error('Error sending email:', error);
+  } catch (error: any) {
+    console.error('❌ [SMTP] Failed to send email:', error.message);
+    if (error.code === 'ECONNREFUSED') {
+      console.error('   → Cannot connect to SMTP server. Check EMAIL_HOST and EMAIL_PORT.');
+    } else if (error.responseCode === 535 || error.responseCode === 534) {
+      console.error('   → Authentication failed. Use a Gmail App Password.');
+      console.error('     https://myaccount.google.com/apppasswords');
+    } else if (error.code === 'ETIMEDOUT') {
+      console.error('   → Connection timed out. Check port', env.EMAIL_PORT);
+    }
     return false;
   }
 };
