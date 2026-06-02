@@ -38,8 +38,10 @@ export const sendOtpController = async (req: Request, res: Response): Promise<vo
     return;
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
+
   try {
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (type === 'signup' && existingUser) {
       res.status(400).json({ error: 'User already exists' });
       return;
@@ -49,7 +51,7 @@ export const sendOtpController = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const recentOtp = await OtpVerification.findOne({ email }).sort({ createdAt: -1 });
+    const recentOtp = await OtpVerification.findOne({ email: normalizedEmail }).sort({ createdAt: -1 });
     const resendIntervalMs = env.OTP_RESEND_INTERVAL_SECONDS * 1000;
     if (recentOtp && Date.now() - recentOtp.createdAt.getTime() < resendIntervalMs) {
       res.status(429).json({ error: `Please wait ${env.OTP_RESEND_INTERVAL_SECONDS} seconds before requesting another OTP` });
@@ -59,18 +61,21 @@ export const sendOtpController = async (req: Request, res: Response): Promise<vo
     const otpStart = performance.now();
     const otp = generateOTP();
     console.log(`[OTP_GENERATION] OTP generated in ${(performance.now() - otpStart).toFixed(2)}ms`);
+    if (env.NODE_ENV === 'development') {
+      console.log(`[DEV_ONLY] Generated OTP for ${normalizedEmail}: ${otp}`);
+    }
     
     const storeStart = performance.now();
     const otpHash = await bcrypt.hash(otp, env.BCRYPT_ROUNDS);
     const expiresAt = new Date(Date.now() + env.OTP_EXPIRY_MINUTES * 60000);
 
-    await OtpVerification.deleteMany({ email });
-    await OtpVerification.create({ email, otpHash, expiresAt });
+    await OtpVerification.deleteMany({ email: normalizedEmail });
+    await OtpVerification.create({ email: normalizedEmail, otpHash, expiresAt });
     console.log(`[OTP_STORAGE] OTP stored successfully in DB in ${(performance.now() - storeStart).toFixed(2)}ms`);
 
     const emailStart = performance.now();
-    console.log(`[EMAIL_SENDING] Initiating SMTP delivery for ${email}...`);
-    const emailSent = await sendOTP(email, otp);
+    console.log(`[EMAIL_SENDING] Initiating SMTP delivery for ${normalizedEmail}...`);
+    const emailSent = await sendOTP(normalizedEmail, otp);
     console.log(`[EMAIL_SENDING] SMTP delivery finished in ${(performance.now() - emailStart).toFixed(2)}ms`);
     
     if (!emailSent) {
@@ -92,8 +97,11 @@ export const verifyOtpController = async (req: Request, res: Response): Promise<
     return;
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedOtp = String(otp).replace(/\D/g, '');
+
   try {
-    const otpRecord = await OtpVerification.findOne({ email });
+    const otpRecord = await OtpVerification.findOne({ email: normalizedEmail });
     if (!otpRecord) {
       res.status(400).json({ error: 'No OTP found for this email' });
       return;
@@ -111,8 +119,8 @@ export const verifyOtpController = async (req: Request, res: Response): Promise<
       return;
     }
 
-    console.log(`[OTP_VERIFY] Input OTP: "${otp}" (Type: ${typeof otp}), Email: "${email}"`);
-    const isMatch = await bcrypt.compare(String(otp).trim(), otpRecord.otpHash);
+    console.log(`[OTP_VERIFY] Input OTP: "${normalizedOtp}" (Original: ${typeof otp}), Email: "${normalizedEmail}"`);
+    const isMatch = await bcrypt.compare(normalizedOtp, otpRecord.otpHash);
     console.log(`[OTP_VERIFY] Match result: ${isMatch}`);
     if (!isMatch) {
       otpRecord.attempts += 1;
@@ -121,7 +129,10 @@ export const verifyOtpController = async (req: Request, res: Response): Promise<
       return;
     }
 
-    res.json({ message: 'OTP verified successfully', verifiedToken: jwt.sign({ email }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as any }) });
+    otpRecord.verified = true;
+    await otpRecord.save();
+
+    res.json({ message: 'OTP verified successfully', verifiedToken: jwt.sign({ email: normalizedEmail }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as any }) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
@@ -136,14 +147,22 @@ export const signupController = async (req: Request, res: Response): Promise<voi
     return;
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
+
   try {
     const decoded = jwt.verify(verifiedToken, env.JWT_SECRET) as { email: string };
-    if (decoded.email !== email) {
+    if (decoded.email.toLowerCase().trim() !== normalizedEmail) {
       res.status(400).json({ error: 'Email mismatch in verification token' });
       return;
     }
 
-    const existingUser = await User.findOne({ email });
+    const otpRecord = await OtpVerification.findOne({ email: normalizedEmail, verified: true });
+    if (!otpRecord) {
+      res.status(400).json({ error: 'Please verify your OTP first, or OTP has expired.' });
+      return;
+    }
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       res.status(400).json({ error: 'User already exists' });
       return;
@@ -154,7 +173,7 @@ export const signupController = async (req: Request, res: Response): Promise<voi
     
     const user = await User.create({
       fullName,
-      email,
+      email: normalizedEmail,
       phone,
       passwordHash,
       authProvider: 'email',
@@ -162,7 +181,7 @@ export const signupController = async (req: Request, res: Response): Promise<voi
     });
     console.log(`[USER_CREATION] New user ${user._id} created in DB in ${(performance.now() - startCreation).toFixed(2)}ms`);
 
-    await OtpVerification.deleteMany({ email });
+    await OtpVerification.deleteMany({ email: normalizedEmail });
 
     const { accessToken, refreshToken } = generateTokens(user._id.toString());
     await Session.create({ userId: user._id, refreshTokenHash: await bcrypt.hash(refreshToken, env.BCRYPT_ROUNDS), ipAddress: req.ip });
@@ -179,13 +198,15 @@ export const loginController = async (req: Request, res: Response): Promise<void
   const loginStart = performance.now();
 
   try {
-    const user = await User.findOne({ email });
-    if (!user || !user.passwordHash) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+    const storedPassword = user?.passwordHash || user?.password;
+    if (!user || !storedPassword) {
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    const isMatch = await bcrypt.compare(password, storedPassword);
     if (!isMatch) {
       res.status(401).json({ error: 'Invalid email or password' });
       return;
@@ -193,10 +214,22 @@ export const loginController = async (req: Request, res: Response): Promise<void
 
     console.log(`[LOGIN] User verification latency: ${(performance.now() - loginStart).toFixed(2)}ms`);
 
+    // Auto-migrate legacy user schema to passwordHash
+    if (user.password) {
+      user.passwordHash = user.password;
+      if (!user.fullName) {
+        const prefix = normalizedEmail.split('@')[0];
+        user.fullName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+      }
+      user.set('password', undefined);
+      await user.save();
+      console.log(`[LOGIN] Migrated old password schema to passwordHash for user: ${user.email}`);
+    }
+
     const { accessToken, refreshToken } = generateTokens(user._id.toString());
     await Session.create({ userId: user._id, refreshTokenHash: await bcrypt.hash(refreshToken, env.BCRYPT_ROUNDS), ipAddress: req.ip });
 
-    res.json({ accessToken, refreshToken, user: { id: user._id, fullName: user.fullName, email: user.email, role: user.role } });
+    res.json({ accessToken, refreshToken, user: { id: user._id, fullName: user.fullName || normalizedEmail.split('@')[0], email: user.email, role: user.role } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
@@ -266,22 +299,35 @@ export const resetPasswordController = async (req: Request, res: Response): Prom
       res.status(400).json({ error: 'Must verify OTP first (missing verifiedToken)' });
       return;
     }
+
+    const normalizedEmail = email.toLowerCase().trim();
     const decoded = jwt.verify(verifiedToken, env.JWT_SECRET) as { email: string };
-    if (decoded.email !== email) {
+    if (decoded.email.toLowerCase().trim() !== normalizedEmail) {
       res.status(400).json({ error: 'Email mismatch in verification token' });
       return;
     }
 
-    const user = await User.findOne({ email });
+    const otpRecord = await OtpVerification.findOne({ email: normalizedEmail, verified: true });
+    if (!otpRecord) {
+      res.status(400).json({ error: 'Please verify your OTP first, or OTP has expired.' });
+      return;
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
 
     user.passwordHash = await bcrypt.hash(newPassword, env.BCRYPT_ROUNDS);
+    if (!user.fullName) {
+      const prefix = normalizedEmail.split('@')[0];
+      user.fullName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    }
+    user.set('password', undefined);
     await user.save();
     
-    await OtpVerification.deleteMany({ email });
+    await OtpVerification.deleteMany({ email: normalizedEmail });
     await Session.deleteMany({ userId: user._id });
 
     res.json({ message: 'Password reset successfully' });

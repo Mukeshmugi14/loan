@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Card } from '../components/ui';
-import { ShieldCheck } from 'lucide-react';
-import { useForm } from 'react-form'; // Note: React Hook form was requested, will use 'react-hook-form' and 'zod'
+import { ShieldCheck, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { authAPI } from '../api/auth';
-import { useForm as useHookForm } from 'react-hook-form';
+import { useForm as useHookForm, useWatch } from 'react-hook-form';
 import { GoogleLogin } from '@react-oauth/google';
 
 // --- Zod Schemas ---
@@ -32,7 +31,7 @@ const signupSchema = z.object({
 });
 
 const otpSchema = z.object({
-  otp: z.string().length(6, 'OTP must be exactly 6 digits'),
+  otp: z.string().length(4, 'OTP must be exactly 4 digits'),
 });
 
 const forgotPasswordSchema = z.object({
@@ -44,6 +43,117 @@ const resetPasswordSchema = z.object({
 });
 
 type AuthMode = 'login' | 'signup' | 'otp' | 'forgot' | 'reset';
+
+const calculatePasswordStrength = (pass: string) => {
+  let strength = 0;
+  if (pass.length >= 8) strength += 25;
+  if (/[A-Z]/.test(pass)) strength += 25;
+  if (/[a-z]/.test(pass)) strength += 25;
+  if (/[0-9\W_]/.test(pass)) strength += 25;
+  return strength;
+};
+
+const InputField = React.memo(({ label, type = "text", register, error }: any) => {
+  const [showPassword, setShowPassword] = React.useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
+  return (
+    <div className="mb-4 text-left">
+      <label className="block text-sm font-medium text-dark-300 mb-1">{label}</label>
+      <div className="relative">
+        <input 
+          type={inputType} 
+          {...register} 
+          className="w-full bg-dark-900/50 border border-dark-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all pr-12"
+        />
+        {isPassword && (
+          <button
+            type="button"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white transition-colors"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        )}
+      </div>
+      {error && <p className="text-red-500 text-xs mt-1">{error.message}</p>}
+    </div>
+  );
+});
+
+const OtpInput = ({ length = 4, onComplete, disabled, error }: any) => {
+  const [otp, setOtp] = React.useState<string[]>(Array(length).fill(""));
+  const inputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const value = e.target.value;
+    if (isNaN(Number(value))) return;
+    
+    const newOtp = [...otp];
+    newOtp[index] = value.substring(value.length - 1);
+    setOtp(newOtp);
+
+    const combined = newOtp.join('');
+    onComplete(combined);
+
+    if (value && index < length - 1 && inputRefs.current[index + 1]) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0 && inputRefs.current[index - 1]) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  return (
+    <div className="mb-6">
+      <div className="flex justify-center gap-3">
+        {otp.map((digit, index) => (
+          <input
+            key={index}
+            ref={(el) => { inputRefs.current[index] = el; }}
+            type="text"
+            inputMode="numeric"
+            maxLength={1}
+            value={digit}
+            onChange={(e) => handleChange(e, index)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+            disabled={disabled}
+            className="w-14 h-14 text-center text-2xl font-bold bg-dark-900/50 border border-dark-800 rounded-xl text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all disabled:opacity-50"
+          />
+        ))}
+      </div>
+      {error && <p className="text-red-500 text-xs mt-2 text-center">{error.message}</p>}
+    </div>
+  );
+};
+
+const PasswordStrengthMeter = ({ control, name }: { control: any; name: string }) => {
+  const password = useWatch({
+    control,
+    name,
+    defaultValue: ''
+  });
+
+  if (!password) return null;
+
+  const strength = calculatePasswordStrength(password);
+  let colorClass = "bg-red-500";
+  if (strength > 50) colorClass = "bg-yellow-500";
+  if (strength > 75) colorClass = "bg-green-500";
+  
+  return (
+    <div className="mt-2">
+      <div className="w-full bg-dark-800 rounded-full h-1.5 mb-1">
+        <div className={`h-1.5 rounded-full ${colorClass} transition-all duration-300`} style={{ width: `${strength}%` }}></div>
+      </div>
+      <p className="text-xs text-dark-400 text-right">Strength: {strength}%</p>
+    </div>
+  );
+};
 
 export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>('login');
@@ -58,22 +168,10 @@ export default function AuthPage() {
 
   // Setup forms
   const { register: registerLogin, handleSubmit: handleLoginSubmit, formState: { errors: loginErrors } } = useHookForm({ resolver: zodResolver(loginSchema) });
-  const { register: registerSignup, handleSubmit: handleSignupSubmit, formState: { errors: signupErrors, dirtyFields }, watch: watchSignup } = useHookForm({ resolver: zodResolver(signupSchema) });
-  const { register: registerOtp, handleSubmit: handleOtpSubmit, formState: { errors: otpErrors } } = useHookForm({ resolver: zodResolver(otpSchema) });
+  const { register: registerSignup, handleSubmit: handleSignupSubmit, formState: { errors: signupErrors }, control: signupControl } = useHookForm({ resolver: zodResolver(signupSchema) });
+  const { register: registerOtp, handleSubmit: handleOtpSubmit, formState: { errors: otpErrors }, setValue: setOtpValue } = useHookForm({ resolver: zodResolver(otpSchema) });
   const { register: registerForgot, handleSubmit: handleForgotSubmit, formState: { errors: forgotErrors } } = useHookForm({ resolver: zodResolver(forgotPasswordSchema) });
-  const { register: registerReset, handleSubmit: handleResetSubmit, formState: { errors: resetErrors }, watch: watchReset } = useHookForm({ resolver: zodResolver(resetPasswordSchema) });
-
-  const watchSignupPassword = watchSignup('password', '');
-  const watchResetPassword = watchReset('newPassword', '');
-
-  const calculatePasswordStrength = (pass: string) => {
-    let strength = 0;
-    if (pass.length >= 8) strength += 25;
-    if (/[A-Z]/.test(pass)) strength += 25;
-    if (/[a-z]/.test(pass)) strength += 25;
-    if (/[0-9\W_]/.test(pass)) strength += 25;
-    return strength;
-  };
+  const { register: registerReset, handleSubmit: handleResetSubmit, formState: { errors: resetErrors }, control: resetControl } = useHookForm({ resolver: zodResolver(resetPasswordSchema) });
 
   const onLogin = async (data: any) => {
     setIsLoading(true);
@@ -104,7 +202,7 @@ export default function AuthPage() {
     setIsLoading(true);
     setErrorMsg('');
     try {
-      const emailToVerify = mode === 'otp' ? signupData.email : resetEmail;
+      const emailToVerify = signupData ? signupData.email : resetEmail;
       const res = await authAPI.verifyOtp({ email: emailToVerify, otp: data.otp });
       const vToken = res.data.verifiedToken;
       
@@ -161,34 +259,6 @@ export default function AuthPage() {
     setIsLoading(false);
   };
 
-  const InputField = ({ label, type = "text", register, error }: any) => (
-    <div className="mb-4 text-left">
-      <label className="block text-sm font-medium text-dark-300 mb-1">{label}</label>
-      <input 
-        type={type} 
-        {...register} 
-        className="w-full bg-dark-900/50 border border-dark-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
-      />
-      {error && <p className="text-red-500 text-xs mt-1">{error.message}</p>}
-    </div>
-  );
-
-  const PasswordStrengthMeter = ({ password }: { password: string }) => {
-    const strength = calculatePasswordStrength(password);
-    let colorClass = "bg-red-500";
-    if (strength > 50) colorClass = "bg-yellow-500";
-    if (strength > 75) colorClass = "bg-green-500";
-    
-    return (
-      <div className="mt-2">
-        <div className="w-full bg-dark-800 rounded-full h-1.5 mb-1">
-          <div className={`h-1.5 rounded-full ${colorClass} transition-all duration-300`} style={{ width: `${strength}%` }}></div>
-        </div>
-        <p className="text-xs text-dark-400 text-right">Strength: {strength}%</p>
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-dark-950">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg h-[500px] bg-brand-500/10 blur-[120px] rounded-full pointer-events-none" />
@@ -219,7 +289,8 @@ export default function AuthPage() {
               <div className="text-right">
                 <button type="button" onClick={() => setMode('forgot')} className="text-sm text-brand-400 hover:text-brand-300">Forgot Password?</button>
               </div>
-              <button disabled={isLoading} className="w-full h-12 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition-all disabled:opacity-70">
+              <button disabled={isLoading} className="w-full h-12 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition-all disabled:opacity-70 flex items-center justify-center gap-2">
+                {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
                 {isLoading ? 'Authenticating...' : 'Sign In'}
               </button>
               <div className="text-center mt-4">
@@ -235,8 +306,9 @@ export default function AuthPage() {
               <InputField label="Email" register={registerSignup('email')} error={signupErrors.email} />
               <InputField label="Mobile Number" register={registerSignup('phone')} error={signupErrors.phone} />
               <InputField label="Password" type="password" register={registerSignup('password')} error={signupErrors.password} />
-              {watchSignupPassword && <PasswordStrengthMeter password={watchSignupPassword} />}
-              <button disabled={isLoading} className="w-full h-12 mt-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition-all disabled:opacity-70">
+              <PasswordStrengthMeter control={signupControl} name="password" />
+              <button disabled={isLoading} className="w-full h-12 mt-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition-all disabled:opacity-70 flex items-center justify-center gap-2">
+                {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
                 {isLoading ? 'Creating Account...' : 'Continue to Verify OTP'}
               </button>
               <div className="text-center mt-4">
@@ -248,9 +320,12 @@ export default function AuthPage() {
 
           {mode === 'otp' && (
             <form onSubmit={handleOtpSubmit(onOtpVerify)} className="space-y-4 text-center">
-              <p className="text-dark-300 text-sm mb-4">We've sent a 6-digit OTP to your email.</p>
-              <InputField label="Enter OTP" register={registerOtp('otp')} error={otpErrors.otp} />
-              <button disabled={isLoading} className="w-full h-12 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition-all disabled:opacity-70">
+              <p className="text-dark-300 text-sm mb-4">We've sent a 4-digit OTP to your email.</p>
+              <OtpInput length={4} disabled={isLoading} error={otpErrors.otp} onComplete={(val: string) => setOtpValue('otp', val)} />
+              {/* Hidden input to store OTP value for react-hook-form */}
+              <input type="hidden" {...registerOtp('otp')} />
+              <button disabled={isLoading} className="w-full h-12 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition-all disabled:opacity-70 flex items-center justify-center gap-2">
+                {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
                 {isLoading ? 'Verifying...' : 'Verify OTP'}
               </button>
               <button type="button" onClick={() => setMode('login')} className="mt-4 text-sm text-dark-400 hover:text-white">Cancel</button>
@@ -261,7 +336,8 @@ export default function AuthPage() {
             <form onSubmit={handleForgotSubmit(onForgot)} className="space-y-4 text-center">
               <p className="text-dark-300 text-sm mb-4">Enter your email to receive a password reset OTP.</p>
               <InputField label="Email" register={registerForgot('email')} error={forgotErrors.email} />
-              <button disabled={isLoading} className="w-full h-12 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition-all disabled:opacity-70">
+              <button disabled={isLoading} className="w-full h-12 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition-all disabled:opacity-70 flex items-center justify-center gap-2">
+                {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
                 {isLoading ? 'Sending...' : 'Send OTP'}
               </button>
               <button type="button" onClick={() => setMode('login')} className="mt-4 text-sm text-dark-400 hover:text-white">Back to Login</button>
@@ -272,8 +348,9 @@ export default function AuthPage() {
             <form onSubmit={handleResetSubmit(onReset)} className="space-y-4 text-center">
               <p className="text-dark-300 text-sm mb-4">Enter your new secure password.</p>
               <InputField label="New Password" type="password" register={registerReset('newPassword')} error={resetErrors.newPassword} />
-              {watchResetPassword && <PasswordStrengthMeter password={watchResetPassword} />}
-              <button disabled={isLoading} className="w-full h-12 mt-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition-all disabled:opacity-70">
+              <PasswordStrengthMeter control={resetControl} name="newPassword" />
+              <button disabled={isLoading} className="w-full h-12 mt-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition-all disabled:opacity-70 flex items-center justify-center gap-2">
+                {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
                 {isLoading ? 'Resetting...' : 'Reset Password'}
               </button>
             </form>

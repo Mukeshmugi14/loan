@@ -5,6 +5,7 @@ export interface IOtpVerification extends Document {
   otpHash: string;
   expiresAt: Date;
   attempts: number;
+  verified: boolean;
   createdAt: Date;
 }
 
@@ -27,6 +28,10 @@ const OtpVerificationSchema: Schema = new Schema(
     attempts: {
       type: Number,
       default: 0,
+    },
+    verified: {
+      type: Boolean,
+      default: false,
     },
   },
   {
