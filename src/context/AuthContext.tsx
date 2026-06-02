@@ -34,6 +34,7 @@ export interface User {
   auth_provider: AuthProvider;
   role: UserRole;
   onboarded: boolean;
+  onboardingStep?: number;
   businessInfo?: BusinessInfo;
   documents?: DocumentStatus;
 }
@@ -45,7 +46,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (data: any) => Promise<void>;
   signup: (data: any) => Promise<void>;
-  loginWithGoogle: (credential: string) => Promise<void>;
+  loginWithGoogle: (credential: any) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
   updateDocuments: (docs: Partial<DocumentStatus>) => void;
@@ -112,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     saveAuthData(res.data);
   };
 
-  const loginWithGoogle = async (credential: string) => {
+  const loginWithGoogle = async (credential: any) => {
     const res = await authAPI.googleAuth(credential);
     saveAuthData(res.data);
   };

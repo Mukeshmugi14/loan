@@ -28,7 +28,7 @@ const backendEnvSchema = z.object({
   EMAIL_FROM: z.string().optional(),
 
   // OTP Configuration
-  OTP_LENGTH: z.coerce.number().int().positive().default(6),
+  OTP_LENGTH: z.coerce.number().int().positive().default(4),
   OTP_EXPIRY_MINUTES: z.coerce.number().int().positive().default(5),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
   OTP_RESEND_INTERVAL_SECONDS: z.coerce.number().int().positive().default(60),

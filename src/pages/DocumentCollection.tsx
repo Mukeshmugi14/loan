@@ -81,6 +81,7 @@ export default function DocumentCollection() {
   
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, UploadedFile>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
+  const initialized = useRef(false);
   const [inputMode, setInputMode] = useState<'none' | 'business-form' | 'kyc-upload' | 'biz-upload' | 'summary'>('none');
 
   const addBotMessage = (text: string, component?: React.ReactNode) => {
@@ -91,6 +92,9 @@ export default function DocumentCollection() {
   };
 
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     // Populate form if data exists in user context
     if (user?.businessInfo) {
       setBusinessForm({

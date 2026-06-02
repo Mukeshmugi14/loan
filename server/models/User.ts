@@ -5,6 +5,7 @@ export interface IUser extends Document {
   email: string;
   phone?: string;
   passwordHash?: string;
+  password?: string; // Legacy support
   authProvider: 'email' | 'google';
   isEmailVerified: boolean;
   role: 'user' | 'admin';
@@ -34,6 +35,9 @@ const UserSchema: Schema = new Schema(
     passwordHash: {
       type: String,
       // Not required for Google OAuth users
+    },
+    password: {
+      type: String, // Legacy support
     },
     authProvider: {
       type: String,
